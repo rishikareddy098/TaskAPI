@@ -58,7 +58,7 @@ def get_tasks():
 
         cursor.execute("SELECT * FROM tasks")
 
-        row = cursor.fethcall()
+        rows = cursor.fetchall()
         tasks = []
 
         for row in rows:
