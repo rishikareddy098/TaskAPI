@@ -91,3 +91,27 @@ def get_task(task_id: int):
                 "title": row[1],
                 "done": bool(row[2])
         }
+
+@app.post("/tasks", status_code = 201)
+def create_task(task: TaskCreate):
+
+        if task.title.strip() == "":
+                raise HTTPException(
+                        status_code = 400,
+                        detail = "Title is required"
+                )
+
+        cursor.execute(
+                "INSERT INTO tasks (title, done) VALUES (?, ?)",
+                (task.title, False)
+        )
+
+        conn.commit()
+
+        new_id = cursor.lastrowid
+
+        return {
+                "id": new_id,
+                "title": task.title,
+                "done": False
+        }
