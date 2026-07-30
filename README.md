@@ -19,7 +19,6 @@ I chose SQLite because it is simple to set up and doesn't require a separate dat
 -> Table name: tasks
 
 The table contains the following columns:
-
 . id – Integer (Primary Key)
 . title – Text
 . done – Boolean
