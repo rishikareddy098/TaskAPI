@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import sqlite3
+import os
 
 app = FastAPI(
     title = "Task API",
@@ -10,6 +11,8 @@ app = FastAPI(
 
 conn = sqlite3.connect("tasks.db", check_same_thread=False)
 cursor = conn.cursor()
+
+print("Database location:", os.path.abspath("tasks.db"))
 
 cursor.execute("""
     CREATE TABLE IF NOT EXISTS tasks (
