@@ -1,102 +1,115 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from database import conn, cursor
+import os
+
+from postgres_repository import PostgresTaskRepository
+
 
 app = FastAPI(
-    title = "Task API",
-    description = "A simple CRUD API for manging tasks",
-    version = "1.0"
+    title="Task API",
+    description="A simple CRUD API using PostgreSQL",
+    version="3.0"
 )
 
-tasks = [
-    {"id": 1, "title" : "Study Python", "done" : False},
-    {"id": 2, "title" : "Complete Assignment", "done" : False},
-    {"id": 3, "title" : "Read a Book", "done" : True}
-]
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL is not set")
+
+
+repository = PostgresTaskRepository(DATABASE_URL)
+
 
 class TaskCreate(BaseModel):
-    title : str
+    title: str
+
 
 class TaskUpdate(BaseModel):
-    title : str
-    done : bool
+    title: str
+    done: bool
 
-@app.get("/", summary = "API Information")
+
+@app.get("/", summary="API Information")
 def root():
     return {
-        "name" : "Task API",
-        "version" : "1.0",
-        "endpoints" : ["/tasks"]
+        "name": "Task API",
+        "version": "3.0",
+        "endpoints": ["/tasks"]
     }
 
-@app.get("/health", summary = "Health Check")
+
+@app.get("/health", summary="Health Check")
 def health():
     return {
-        "status" : "OK"
+        "status": "OK"
     }
 
-@app.get("/tasks", summary = "Get All Tasks")
+
+@app.get("/tasks", summary="Get All Tasks")
 def get_tasks():
-    return tasks
+    return repository.get_tasks()
 
-@app.get("/tasks/{task_id}", summary = "Get Task by ID")
+
+@app.get("/tasks/{task_id}", summary="Get Task by ID")
 def get_task(task_id: int):
-    for task in tasks:
-        if task["id"] == task_id:
-            return task
-        
-    raise HTTPException(
-        status_code = 404,
-        detail = f"Task {task_id} not found..!"
-    )
 
-@app.post("/tasks", status_code = 201, summary = "Create a new task")
-def create_task(task : TaskCreate):
-    if not task.title.strip():
+    task = repository.get_task(task_id)
+
+    if task is None:
         raise HTTPException(
-            status_code = 400,
-            detail = "Title cannot be empty"
+            status_code=404,
+            detail=f"Task {task_id} not found..!"
         )
 
-    new_task = {
-        "id" : len(tasks) + 1,
-        "title" : task.title,
-        "done" : False
-    }
+    return task
 
-    tasks.append(new_task)
 
-    return new_task
+@app.post("/tasks", status_code=201, summary="Create a new task")
+def create_task(task: TaskCreate):
 
-@app.put("/tasks/{task_id}", summary = "Update a task")
+    if not task.title.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Title cannot be empty"
+        )
+
+    return repository.create_task(task.title)
+
+
+@app.put("/tasks/{task_id}", summary="Update a task")
 def update_task(task_id: int, updated_task: TaskUpdate):
 
     if not updated_task.title.strip():
         raise HTTPException(
-            status_code = 400,
-            detail = "Title cannot be empty..!"
+            status_code=400,
+            detail="Title cannot be empty..!"
         )
-    
-    for task in tasks:
-        if task["id"] == task_id:
-            task["title"] = updated_task.title
-            task["done"] = updated_task.done
-            return task
-        
-    raise HTTPException(
-        status_code = 404,
-        detail = f"Task {task_id} not found..!"
+
+    task = repository.update_task(
+        task_id,
+        updated_task.title,
+        updated_task.done
     )
 
-@app.delete("/tasks/{task_id}", status_code = 204, summary = "Delete a task")
+    if task is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Task {task_id} not found..!"
+        )
+
+    return task
+
+
+@app.delete("/tasks/{task_id}", status_code=204, summary="Delete a task")
 def delete_task(task_id: int):
 
-    for task in tasks:
-        if task["id"] == task_id:
-            tasks.remove(task)
-            return
+    deleted = repository.delete_task(task_id)
 
-    raise HTTPException(
-        status_code = 404,
-        detail = f"Task {task_id} not found..!"
-    )
+    if not deleted:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Task {task_id} not found..!"
+        )
+
+    return

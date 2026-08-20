@@ -7,7 +7,7 @@ app = FastAPI(
     title = "Task API",
     description = "A simple CRUD API using SQLite",
     version = "2.0"
-)
+    )
 
 conn = sqlite3.connect("tasks.db", check_same_thread=False)
 cursor = conn.cursor()
@@ -152,7 +152,7 @@ def update_task(task_id: int, task: TaskUpdate):
                 "done": task.done
         }
 
-@app.delete("/tasks/{tasks_id}")
+@app.delete("/tasks/{task_id}")
 def delete_task(task_id: int):
 
         cursor.execute(
